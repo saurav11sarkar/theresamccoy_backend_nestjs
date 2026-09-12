@@ -93,10 +93,15 @@ export class CourseController {
   @UseGuards(AuthGuard('admin', 'business', 'bookkeeper', 'user'))
   @HttpCode(HttpStatus.OK)
   async getAllCourse(
+    @Req() req: Request,
     @Query() params: IFilterParams,
     @Query() options: IOptions,
   ) {
-    const result = await this.courseService.getAllCourse(params, options);
+    const result = await this.courseService.getAllCourse(
+      params,
+      options,
+      req.user!.role,
+    );
     return {
       message: 'Courses retrieved successfully',
       ...result,
@@ -118,6 +123,24 @@ export class CourseController {
     };
   }
 
+  @Get('enrollments/me')
+  @ApiOperation({ summary: 'Get my course enrollments' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('bookkeeper'))
+  async getMyEnrollments(@Req() req: Request) {
+    const data = await this.courseService.getMyEnrollments(req.user!.id);
+    return { message: 'My enrollments retrieved successfully', data };
+  }
+
+  @Get('enrollments/all')
+  @ApiOperation({ summary: 'Admin gets all course enrollments' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('admin'))
+  async getAllEnrollments() {
+    const data = await this.courseService.getAllEnrollments();
+    return { message: 'Enrollments retrieved successfully', data };
+  }
+
   @Get(':courseId')
   @ApiOperation({
     summary: 'Get single course details',
@@ -125,8 +148,14 @@ export class CourseController {
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('admin', 'business', 'bookkeeper', 'user'))
   @HttpCode(HttpStatus.OK)
-  async getSingleCourse(@Param('courseId') courseId: string) {
-    const result = await this.courseService.getSingleCourse(courseId);
+  async getSingleCourse(
+    @Req() req: Request,
+    @Param('courseId') courseId: string,
+  ) {
+    const result = await this.courseService.getSingleCourse(
+      courseId,
+      req.user!.role,
+    );
     return {
       message: 'Course retrieved successfully',
       data: result,
@@ -182,6 +211,16 @@ export class CourseController {
       message: 'Module added successfully',
       data: result,
     };
+  }
+
+  @Post(':courseId/enroll')
+  @ApiOperation({ summary: 'Bookkeeper enrolls in a course' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('bookkeeper'))
+  @HttpCode(HttpStatus.CREATED)
+  async enrollCourse(@Req() req: Request, @Param('courseId') courseId: string) {
+    const data = await this.courseService.enrollCourse(req.user!.id, courseId);
+    return { message: 'Course enrolled successfully', data };
   }
 
   @Patch(':courseId/module/:moduleId')

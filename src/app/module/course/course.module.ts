@@ -7,6 +7,8 @@ import {
   CourseSchema,
   CourseProgress,
   CourseProgressSchema,
+  CourseEnrollment,
+  CourseEnrollmentSchema,
   AssignmentSubmission,
   AssignmentSubmissionSchema,
   Lesson,
@@ -15,6 +17,10 @@ import {
   Quiz,
   QuizSchema,
 } from './entities/course.entity';
+import {
+  Certificate,
+  CertificateSchema,
+} from '../certificate/entities/certificate.entity';
 
 @Module({
   imports: [
@@ -24,6 +30,8 @@ import {
       { name: Lesson.name, schema: LessonSchema },
       { name: Quiz.name, schema: QuizSchema },
       { name: CourseProgress.name, schema: CourseProgressSchema },
+      { name: CourseEnrollment.name, schema: CourseEnrollmentSchema },
+      { name: Certificate.name, schema: CertificateSchema },
       {
         name: AssignmentSubmission.name,
         schema: AssignmentSubmissionSchema,

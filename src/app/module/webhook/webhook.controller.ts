@@ -1,4 +1,12 @@
-import { Controller, Post, Headers, Req, Res, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Headers,
+  Req,
+  Res,
+  HttpCode,
+  type RawBodyRequest,
+} from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import type { Request, Response } from 'express';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -12,10 +20,10 @@ export class WebhookController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Stripe webhook handler' })
   async handleWebhook(
-    @Req() req: Request,
+    @Req() req: RawBodyRequest<Request>,
     @Res() res: Response,
     @Headers('stripe-signature') sig: string,
   ) {
-    return this.webhookService.handleWebhook(req.body as Buffer, sig, res);
+    return this.webhookService.handleWebhook(req.rawBody!, sig, res);
   }
 }

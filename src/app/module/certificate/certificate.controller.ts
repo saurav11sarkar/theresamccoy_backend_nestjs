@@ -60,6 +60,8 @@ export class CertificateController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'sortBy', required: false })
   @ApiQuery({ name: 'sortOrder', required: false })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('admin', 'bookkeeper'))
   @HttpCode(HttpStatus.OK)
   async getAllCertificates(@Req() req: Request) {
     const filter = pick(req.query, ['title', 'searchTerm']);
@@ -67,6 +69,7 @@ export class CertificateController {
     const result = await this.certificateService.getAllCertificates(
       filter,
       param,
+      req.user!,
     );
     return {
       message: 'All certificates',
@@ -77,9 +80,14 @@ export class CertificateController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a certificate by id' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('admin', 'bookkeeper'))
   @HttpCode(HttpStatus.OK)
-  async getCertificateById(@Param('id') id: string) {
-    const result = await this.certificateService.getCertificateById(id);
+  async getCertificateById(@Req() req: Request, @Param('id') id: string) {
+    const result = await this.certificateService.getCertificateById(
+      id,
+      req.user!,
+    );
     return {
       message: 'Certificate found',
       data: result,

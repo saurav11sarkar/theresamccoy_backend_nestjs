@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Req,
@@ -22,6 +23,8 @@ import pick from 'src/app/helpers/pick';
 import AuthGuard from 'src/app/middlewares/auth.guard';
 import { BusinesswonerService } from './businesswoner.service';
 import { CreateBusinesswonerDto } from './dto/create-businesswoner.dto';
+import { UpdateBusinesswonerDto } from './dto/update-businesswoner.dto';
+import { BusinesswonerStatus } from './entities/businesswoner.entity';
 
 @ApiTags('Businesswoner')
 @Controller('businesswoner')
@@ -56,13 +59,41 @@ export class BusinesswonerController {
     description: 'Business email',
     required: false,
   })
+  @ApiQuery({
+    name: 'fullName',
+    description: 'Full name',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'businessName',
+    description: 'Business name',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'businessPhoneNumber',
+    description: 'Business phone number',
+    required: false,
+  })
   @ApiQuery({ name: 'page', description: 'Page number', required: false })
   @ApiQuery({ name: 'limit', description: 'Limit', required: false })
   @ApiQuery({ name: 'sortBy', description: 'Sort by', required: false })
   @ApiQuery({ name: 'sortOrder', description: 'Sort order', required: false })
+  @ApiQuery({
+    name: 'status',
+    description: 'Approval status',
+    required: false,
+    enum: BusinesswonerStatus,
+  })
   @HttpCode(HttpStatus.OK)
   async getBusinesswonerList(@Req() req: Request) {
-    const filter = pick(req.query, ['searchTerm', 'businessEmail']);
+    const filter = pick(req.query, [
+      'searchTerm',
+      'fullName',
+      'businessName',
+      'businessEmail',
+      'businessPhoneNumber',
+      'status',
+    ]);
     const params = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
     const result = await this.businesswonerService.getAllBusinesswoner(
       filter,
@@ -86,6 +117,39 @@ export class BusinesswonerController {
     };
   }
 
+  @Patch(':id/approve')
+  @ApiOperation({ summary: 'Approve a businesswoner application' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('admin'))
+  @HttpCode(HttpStatus.OK)
+  async approveBusinesswoner(@Param('id') id: string, @Req() req: Request) {
+    const result = await this.businesswonerService.approveBusinesswoner(
+      id,
+      req.user!.id,
+    );
+
+    return {
+      message: 'Businesswoner approved successfully',
+      data: result,
+    };
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({ summary: 'Reject a businesswoner application' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('admin'))
+  @HttpCode(HttpStatus.OK)
+  async rejectBusinesswoner(@Param('id') id: string, @Req() req: Request) {
+    const result = await this.businesswonerService.rejectBusinesswoner(
+      id,
+      req.user!.id,
+    );
+    return {
+      message: 'Businesswoner rejected successfully',
+      data: result,
+    };
+  }
+
   @Put(':id')
   @ApiOperation({ summary: 'Update businesswoner by id' })
   @ApiBearerAuth('access-token')
@@ -93,7 +157,7 @@ export class BusinesswonerController {
   @HttpCode(HttpStatus.OK)
   async updateBusinesswonerById(
     @Param('id') id: string,
-    @Body() updateBusinesswonerDto: CreateBusinesswonerDto,
+    @Body() updateBusinesswonerDto: UpdateBusinesswonerDto,
   ) {
     const result = await this.businesswonerService.updateBusinesswoner(
       id,

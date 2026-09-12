@@ -3,9 +3,15 @@ import mongoose, { HydratedDocument, Types } from 'mongoose';
 
 export type BusinesswonerDocument = HydratedDocument<Businesswoner>;
 
+export enum BusinesswonerStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 @Schema({ timestamps: true })
 export class Businesswoner {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   userId!: Types.ObjectId;
 
   @Prop()
@@ -21,7 +27,7 @@ export class Businesswoner {
   businessPhoneNumber!: string;
 
   @Prop()
-  preherrenceLanguage!: string;
+  preferredLanguage!: string;
 
   @Prop()
   industry!: string;
@@ -30,10 +36,10 @@ export class Businesswoner {
   entityType!: string;
 
   @Prop()
-  yearInBusiness!: number;
+  yearsInBusiness!: number;
 
   @Prop()
-  numberEmployees!: number;
+  numberOfEmployees!: number;
 
   @Prop()
   businessLocation!: string;
@@ -44,38 +50,52 @@ export class Businesswoner {
   @Prop()
   supportType!: string;
 
+  @Prop({ type: [String], default: [] })
+  engagementTypes!: string[];
+
   @Prop()
   annualSales!: string;
 
   @Prop()
-  onsiteOnVirtual!: string;
+  onsiteOrVirtual!: string;
 
-  @Prop()
-  whereDoYouStandToday!: string;
+  @Prop({ type: [String], default: [] })
+  whereDoYouStandToday!: string[];
 
   @Prop()
   currentSystem!: string;
 
   @Prop()
-  monthlyTransactions!: string;
+  monthlyTransactionVolume!: string;
+
+  @Prop({ type: [String], default: [] })
+  servicesYouAreLookingFor!: string[];
+
+  @Prop({ type: [String], default: [] })
+  interestedIn!: string[];
 
   @Prop()
-  serviceYouAreLookingFor!: string;
+  businessCoaching!: string;
 
   @Prop()
-  interestedIn!: string;
-
-  @Prop()
-  businessCouching!: string;
-
-  @Prop()
-  monthlyCouching!: string;
-
-  @Prop()
-  monthlyBudget!: string;
+  monthlyBudgetRange!: string;
 
   @Prop()
   anythingElse!: string;
+
+  @Prop({
+    type: String,
+    enum: BusinesswonerStatus,
+    default: BusinesswonerStatus.PENDING,
+    index: true,
+  })
+  status!: BusinesswonerStatus;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null })
+  approvedBy!: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  approvedAt!: Date | null;
 }
 
 export const BusinesswonerSchema = SchemaFactory.createForClass(Businesswoner);

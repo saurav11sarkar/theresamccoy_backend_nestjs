@@ -6,6 +6,10 @@ import { fileUpload } from 'src/app/helpers/fileUploder';
 import paginationHelper, { IOptions } from 'src/app/helpers/pagenation';
 import { IFilterParams } from 'src/app/helpers/pick';
 import {
+  Certificate,
+  CertificateDocument,
+} from '../certificate/entities/certificate.entity';
+import {
   AddLessonDto,
   AddModuleDto,
   AddQuizDto,
@@ -13,21 +17,23 @@ import {
   CreateCourseDto,
 } from './dto/create-course.dto';
 import {
-  Course,
-  CourseDocument,
-  CourseProgress,
-  CourseProgressDocument,
-  AssignmentSubmission,
-  AssignmentSubmissionDocument,
-  LessonDocument,
-  ModuleDocument,
-  QuizDocument,
-} from './entities/course.entity';
-import {
   UpdateCourseDto,
   UpdateLessonDto,
   UpdateModuleDto,
 } from './dto/update-course.dto';
+import {
+  AssignmentSubmission,
+  AssignmentSubmissionDocument,
+  Course,
+  CourseDocument,
+  CourseProgress,
+  CourseProgressDocument,
+  CourseEnrollment,
+  CourseEnrollmentDocument,
+  LessonDocument,
+  ModuleDocument,
+  QuizDocument,
+} from './entities/course.entity';
 
 @Injectable()
 export class CourseService {
@@ -36,8 +42,12 @@ export class CourseService {
     private readonly courseModel: Model<CourseDocument>,
     @InjectModel(CourseProgress.name)
     private readonly progressModel: Model<CourseProgressDocument>,
+    @InjectModel(CourseEnrollment.name)
+    private readonly enrollmentModel: Model<CourseEnrollmentDocument>,
     @InjectModel(AssignmentSubmission.name)
     private readonly submissionModel: Model<AssignmentSubmissionDocument>,
+    @InjectModel(Certificate.name)
+    private readonly certificateModel: Model<CertificateDocument>,
   ) {}
 
   async createCourse(
@@ -52,7 +62,7 @@ export class CourseService {
     }
 
     if (file) {
-      const uploadedFile = await fileUpload.uploadToCloudinary(file);
+      const uploadedFile = await fileUpload.uploadToS3(file);
       createCourseDto.photo = uploadedFile.url;
     }
 
@@ -60,11 +70,23 @@ export class CourseService {
     return result;
   }
 
-  async getAllCourse(params: IFilterParams, options: IOptions) {
+  async getAllCourse(
+    params: IFilterParams,
+    options: IOptions,
+    requesterRole: string,
+  ) {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper(options);
     const whereConditions = buildWhereConditions(params, ['name']);
-    const result = await this.courseModel
+    if (requesterRole !== 'admin') {
+      Object.assign(whereConditions, { status: 'published' });
+    }
+    const selectFields =
+      requesterRole === 'admin'
+        ? '-__v'
+        : '-__v -modules.lessons.quizzes.answer';
+    const courses = await this.courseModel
       .find(whereConditions)
+      .select(selectFields)
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
       .limit(limit)
@@ -76,12 +98,18 @@ export class CourseService {
         limit,
         total,
       },
-      data: result,
+      data: courses,
     };
   }
 
-  async getSingleCourse(courseId: string) {
-    const course = await this.courseModel.findById(courseId);
+  async getSingleCourse(courseId: string, requesterRole: string) {
+    const query: Record<string, unknown> = { _id: courseId };
+    if (requesterRole !== 'admin') query.status = 'published';
+    const selectFields =
+      requesterRole === 'admin'
+        ? '-__v'
+        : '-__v -modules.lessons.quizzes.answer';
+    const course = await this.courseModel.findOne(query).select(selectFields);
     if (!course) {
       throw new HttpException('Course not found', HttpStatus.NOT_FOUND);
     }
@@ -89,9 +117,14 @@ export class CourseService {
   }
 
   async getMyAllCourses(userId: string) {
+    const enrollments = await this.enrollmentModel.find({ userId });
+    const courseIds = enrollments.map((item) => item.courseId);
     const [courses, progressList] = await Promise.all([
-      this.courseModel.find({ status: 'published' }).sort({ createdAt: -1 }),
-      this.progressModel.find({ userId }),
+      this.courseModel
+        .find({ _id: { $in: courseIds }, status: 'published' })
+        .select('-__v -modules.lessons.quizzes.answer')
+        .sort({ createdAt: -1 }),
+      this.progressModel.find({ userId, courseId: { $in: courseIds } }),
     ]);
 
     const progressMap = new Map(
@@ -112,6 +145,34 @@ export class CourseService {
     });
   }
 
+  async enrollCourse(userId: string, courseId: string) {
+    const course = await this.getCourseDocument(courseId);
+    this.ensurePublished(course);
+    const enrolled = await this.enrollmentModel.findOne({ userId, courseId });
+    if (enrolled) {
+      throw new HttpException(
+        'Already enrolled in this course',
+        HttpStatus.CONFLICT,
+      );
+    }
+    return this.enrollmentModel.create({ userId, courseId });
+  }
+
+  async getMyEnrollments(userId: string) {
+    return this.enrollmentModel
+      .find({ userId })
+      .populate('courseId', 'name description photo instructor level status')
+      .sort({ createdAt: -1 });
+  }
+
+  async getAllEnrollments() {
+    return this.enrollmentModel
+      .find()
+      .populate('userId', 'firstName lastName email')
+      .populate('courseId', 'name')
+      .sort({ createdAt: -1 });
+  }
+
   async updateCourse(
     courseId: string,
     dto: UpdateCourseDto,
@@ -119,7 +180,7 @@ export class CourseService {
   ) {
     const updateData = { ...dto };
     if (photoFile) {
-      const photo = await fileUpload.uploadToCloudinary(photoFile);
+      const photo = await fileUpload.uploadToS3(photoFile);
       updateData.photo = photo.url;
     }
     const course = await this.courseModel.findByIdAndUpdate(
@@ -134,6 +195,13 @@ export class CourseService {
   }
 
   async deleteCourse(courseId: string) {
+    const issuedCertificate = await this.certificateModel.exists({ courseId });
+    if (issuedCertificate) {
+      throw new HttpException(
+        'Course with issued certificates cannot be deleted',
+        HttpStatus.CONFLICT,
+      );
+    }
     const course = await this.courseModel.findByIdAndDelete(courseId);
     if (!course) {
       throw new HttpException('Course not found', HttpStatus.NOT_FOUND);
@@ -141,6 +209,7 @@ export class CourseService {
     await Promise.all([
       this.progressModel.deleteMany({ courseId }),
       this.submissionModel.deleteMany({ courseId }),
+      this.enrollmentModel.deleteMany({ courseId }),
     ]);
     return course;
   }
@@ -177,8 +246,23 @@ export class CourseService {
     const modules =
       course.modules as unknown as Types.DocumentArray<ModuleDocument>;
     const module = this.findModule(course, moduleId);
+    const lessonIds = module.lessons.map((lesson) => lesson._id);
     modules.pull(module._id);
     await course.save();
+    await Promise.all([
+      this.progressModel.updateMany(
+        { courseId },
+        { $pull: { completedLessonIds: { $in: lessonIds } } },
+      ),
+      this.progressModel.updateMany(
+        { courseId, currentLessonId: { $in: lessonIds } },
+        { $unset: { currentLessonId: '' } },
+      ),
+      this.submissionModel.deleteMany({
+        courseId,
+        lessonId: { $in: lessonIds },
+      }),
+    ]);
     return module;
   }
 
@@ -203,15 +287,15 @@ export class CourseService {
     }
 
     if (videoFile) {
-      const videoUrl = await fileUpload.uploadToCloudinary(videoFile);
+      const videoUrl = await fileUpload.uploadToS3(videoFile);
       addLessonDto.video = videoUrl.url;
     }
     if (resourceFile) {
-      const resourceUrl = await fileUpload.uploadToCloudinary(resourceFile);
+      const resourceUrl = await fileUpload.uploadToS3(resourceFile);
       addLessonDto.resource = resourceUrl.url;
     }
     if (thumbnailFile) {
-      const thumbnailUrl = await fileUpload.uploadToCloudinary(thumbnailFile);
+      const thumbnailUrl = await fileUpload.uploadToS3(thumbnailFile);
       addLessonDto.thumbnail = thumbnailUrl.url;
     }
 
@@ -240,17 +324,13 @@ export class CourseService {
     const lesson = this.findLesson(course, lessonId);
     const updateData = { ...dto };
     if (videoFile) {
-      updateData.video = (await fileUpload.uploadToCloudinary(videoFile)).url;
+      updateData.video = (await fileUpload.uploadToS3(videoFile)).url;
     }
     if (resourceFile) {
-      updateData.resource = (
-        await fileUpload.uploadToCloudinary(resourceFile)
-      ).url;
+      updateData.resource = (await fileUpload.uploadToS3(resourceFile)).url;
     }
     if (thumbnailFile) {
-      updateData.thumbnail = (
-        await fileUpload.uploadToCloudinary(thumbnailFile)
-      ).url;
+      updateData.thumbnail = (await fileUpload.uploadToS3(thumbnailFile)).url;
     }
     Object.assign(lesson, updateData);
     await course.save();
@@ -268,6 +348,17 @@ export class CourseService {
     }
     lessons.pull(lesson._id);
     await course.save();
+    await Promise.all([
+      this.progressModel.updateMany(
+        { courseId },
+        { $pull: { completedLessonIds: lesson._id } },
+      ),
+      this.progressModel.updateMany(
+        { courseId, currentLessonId: lesson._id },
+        { $unset: { currentLessonId: '' } },
+      ),
+      this.submissionModel.deleteMany({ courseId, lessonId: lesson._id }),
+    ]);
     return lesson;
   }
 
@@ -349,7 +440,31 @@ export class CourseService {
 
   async markLessonComplete(userId: string, courseId: string, lessonId: string) {
     const course = await this.getCourseDocument(courseId);
+    if (course.status !== 'published') {
+      throw new HttpException('Course is not published', HttpStatus.FORBIDDEN);
+    }
+    await this.checkEnrollment(userId, courseId);
     this.findLesson(course, lessonId);
+    const orderedLessonIds = course.modules.flatMap((module) =>
+      module.lessons.map((lesson) => lesson._id.toString()),
+    );
+    const lessonIndex = orderedLessonIds.indexOf(lessonId);
+    const existingProgress = await this.progressModel.findOne({
+      userId,
+      courseId,
+    });
+    const completedIds = new Set(
+      (existingProgress?.completedLessonIds ?? []).map((id) => id.toString()),
+    );
+    const previousLessonsCompleted = orderedLessonIds
+      .slice(0, lessonIndex)
+      .every((id) => completedIds.has(id));
+    if (!previousLessonsCompleted) {
+      throw new HttpException(
+        'Complete previous lessons first',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const progress = await this.progressModel.findOneAndUpdate(
       { userId, courseId },
       {
@@ -363,6 +478,8 @@ export class CourseService {
 
   async getMyProgress(userId: string, courseId: string) {
     const course = await this.getCourseDocument(courseId);
+    this.ensurePublished(course);
+    await this.checkEnrollment(userId, courseId);
     const progress = await this.progressModel.findOne({ userId, courseId });
     return this.withProgressPercentage(course, progress);
   }
@@ -380,11 +497,13 @@ export class CourseService {
       );
     }
     const course = await this.getCourseDocument(courseId);
+    this.ensurePublished(course);
+    await this.checkEnrollment(userId, courseId);
     const lesson = this.findLesson(course, lessonId);
     if (!lesson.assignmentTitle) {
       throw new HttpException('Assignment not found', HttpStatus.NOT_FOUND);
     }
-    const uploaded = await fileUpload.uploadToCloudinary(file);
+    const uploaded = await fileUpload.uploadToS3(file);
     return this.submissionModel.findOneAndUpdate(
       { userId, courseId, lessonId },
       { $set: { file: uploaded.url, status: 'submitted' } },
@@ -393,7 +512,9 @@ export class CourseService {
   }
 
   async getMySubmissions(userId: string, courseId: string) {
-    await this.getCourseDocument(courseId);
+    const course = await this.getCourseDocument(courseId);
+    this.ensurePublished(course);
+    await this.checkEnrollment(userId, courseId);
     return this.submissionModel.find({ userId, courseId });
   }
 
@@ -413,6 +534,22 @@ export class CourseService {
       throw new HttpException('Module not found', HttpStatus.NOT_FOUND);
     }
     return module;
+  }
+
+  private ensurePublished(course: CourseDocument) {
+    if (course.status !== 'published') {
+      throw new HttpException('Course is not published', HttpStatus.FORBIDDEN);
+    }
+  }
+
+  private async checkEnrollment(userId: string, courseId: string) {
+    const enrollment = await this.enrollmentModel.findOne({ userId, courseId });
+    if (!enrollment) {
+      throw new HttpException(
+        'Please enroll in this course first',
+        HttpStatus.FORBIDDEN,
+      );
+    }
   }
 
   private findLesson(course: CourseDocument, lessonId: string) {
@@ -435,7 +572,16 @@ export class CourseService {
       (total, module) => total + module.lessons.length,
       0,
     );
-    const completedLessons = progress?.completedLessonIds.length ?? 0;
+    const courseLessonIds = new Set(
+      course.modules.flatMap((module) =>
+        module.lessons.map((lesson) => lesson._id.toString()),
+      ),
+    );
+    const completedLessons = new Set(
+      (progress?.completedLessonIds ?? [])
+        .map((id) => id.toString())
+        .filter((id) => courseLessonIds.has(id)),
+    ).size;
     return {
       progress,
       totalLessons,

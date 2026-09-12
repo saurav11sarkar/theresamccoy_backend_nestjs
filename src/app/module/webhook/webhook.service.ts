@@ -1,3 +1,4 @@
+import { EngagementService } from '../engagement/engagement.service';
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
 import config from 'src/app/config';
@@ -17,6 +18,7 @@ export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
 
   constructor(
+    private readonly engagements: EngagementService,
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
 
@@ -77,6 +79,10 @@ export class WebhookService {
   ) {
     const intent = event.data.object as Stripe.PaymentIntent;
 
+    if (intent.metadata?.paymentType === 'platform_fee') {
+      await this.engagements.confirmPayment(intent);
+      return res.json({ received: true });
+    }
     const payment = await this.paymentModel.findOne({
       stripePaymentIntentId: intent.id,
     });

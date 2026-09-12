@@ -6,6 +6,7 @@ export type ModuleDocument = HydratedDocument<Module>;
 export type LessonDocument = HydratedDocument<Lesson>;
 export type QuizDocument = HydratedDocument<Quiz>;
 export type CourseProgressDocument = HydratedDocument<CourseProgress>;
+export type CourseEnrollmentDocument = HydratedDocument<CourseEnrollment>;
 export type AssignmentSubmissionDocument =
   HydratedDocument<AssignmentSubmission>;
 // export type QuizOptionDocument = HydratedDocument<QuizOption>;
@@ -24,6 +25,8 @@ export type AssignmentSubmissionDocument =
 
 @Schema({ _id: true })
 export class Quiz {
+  _id!: Types.ObjectId;
+
   @Prop({ required: true })
   question!: string;
 
@@ -36,6 +39,8 @@ export class Quiz {
 
 @Schema({ _id: true })
 export class Lesson {
+  _id!: Types.ObjectId;
+
   @Prop({ required: true, trim: true })
   name!: string;
 
@@ -69,6 +74,8 @@ export class Lesson {
 
 @Schema({ _id: true })
 export class Module {
+  _id!: Types.ObjectId;
+
   @Prop({ required: true })
   name!: string;
 
@@ -107,6 +114,18 @@ export const CourseSchema = SchemaFactory.createForClass(Course);
 export const ModuleSchema = SchemaFactory.createForClass(Module);
 export const LessonSchema = SchemaFactory.createForClass(Lesson);
 export const QuizSchema = SchemaFactory.createForClass(Quiz);
+
+@Schema({ timestamps: true })
+export class CourseEnrollment {
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
+  userId!: Types.ObjectId;
+
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true })
+  courseId!: Types.ObjectId;
+}
+
+export const CourseEnrollmentSchema =
+  SchemaFactory.createForClass(CourseEnrollment);
 
 @Schema({ timestamps: true })
 export class CourseProgress {

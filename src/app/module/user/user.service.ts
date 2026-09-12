@@ -31,7 +31,7 @@ export class UserService {
       throw new HttpException('User already exists', 400);
     }
     if (file) {
-      const uploadedFile = await fileUpload.uploadToCloudinary(file);
+      const uploadedFile = await fileUpload.uploadToS3(file);
       createUserDto.profilePicture = uploadedFile.url;
     }
     const createdUser = await this.userModel.create(createUserDto);
@@ -77,7 +77,7 @@ export class UserService {
       throw new HttpException('User not found', 404);
     }
     if (file) {
-      const uploadedFile = await fileUpload.uploadToCloudinary(file);
+      const uploadedFile = await fileUpload.uploadToS3(file);
       updateUserDto.profilePicture = uploadedFile.url;
     }
     const updatedUser = await this.userModel.findByIdAndUpdate(
@@ -115,7 +115,7 @@ export class UserService {
       throw new HttpException('User not found', 404);
     }
     if (file) {
-      const uploadedFile = await fileUpload.uploadToCloudinary(file);
+      const uploadedFile = await fileUpload.uploadToS3(file);
       updateUserDto.profilePicture = uploadedFile.url;
     }
     const result = await this.userModel.findByIdAndUpdate(id, updateUserDto, {

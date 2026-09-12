@@ -6,9 +6,11 @@ import paginationHelper, { IOptions } from 'src/app/helpers/pagenation';
 import { IFilterParams } from 'src/app/helpers/pick';
 import { User, UserDocument } from '../user/entities/user.entity';
 import { CreateBusinesswonerDto } from './dto/create-businesswoner.dto';
+import { UpdateBusinesswonerDto } from './dto/update-businesswoner.dto';
 import {
   Businesswoner,
   BusinesswonerDocument,
+  BusinesswonerStatus,
 } from './entities/businesswoner.entity';
 
 @Injectable()
@@ -48,6 +50,7 @@ export class BusinesswonerService {
       'businessName',
       'businessEmail',
       'businessPhoneNumber',
+      'status',
     ]);
     const result = await this.businesswonerModel
       .find(whenCondition)
@@ -75,9 +78,47 @@ export class BusinesswonerService {
     return result;
   }
 
+  async approveBusinesswoner(id: string, adminId: string) {
+    const result = await this.businesswonerModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          status: BusinesswonerStatus.APPROVED,
+          approvedBy: adminId,
+          approvedAt: new Date(),
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!result)
+      throw new HttpException('Businesswoner not found', HttpStatus.NOT_FOUND);
+
+    return result;
+  }
+
+  async rejectBusinesswoner(id: string, adminId: string) {
+    const result = await this.businesswonerModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          status: BusinesswonerStatus.REJECTED,
+          rejectedBy: adminId,
+          rejectedAt: new Date(),
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!result)
+      throw new HttpException('Businesswoner not found', HttpStatus.NOT_FOUND);
+
+    return result;
+  }
+
   async updateBusinesswoner(
     id: string,
-    updateBusinesswonerDto: CreateBusinesswonerDto,
+    updateBusinesswonerDto: UpdateBusinesswonerDto,
   ) {
     const result = await this.businesswonerModel.findByIdAndUpdate(
       id,

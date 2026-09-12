@@ -123,11 +123,11 @@ export class BookkeeperService {
     const assessmentFile = files?.uploadAssessment?.[0];
 
     if (resumeFile) {
-      const resume = await fileUpload.uploadToCloudinary(resumeFile);
+      const resume = await fileUpload.uploadToS3(resumeFile);
       assessmentData.uploadResume = resume.url;
     }
     if (assessmentFile) {
-      const assessment = await fileUpload.uploadToCloudinary(assessmentFile);
+      const assessment = await fileUpload.uploadToS3(assessmentFile);
       assessmentData.uploadAssessment = assessment.url;
     }
     const bookkeeper = await this.bookkeeperModel.findByIdAndUpdate(
@@ -233,12 +233,12 @@ export class BookkeeperService {
     const assessmentFile = files?.uploadAssessment?.[0];
 
     if (resumeFile) {
-      const resume = await fileUpload.uploadToCloudinary(resumeFile);
+      const resume = await fileUpload.uploadToS3(resumeFile);
       updateData.uploadResume = resume.url;
     }
 
     if (assessmentFile) {
-      const assessment = await fileUpload.uploadToCloudinary(assessmentFile);
+      const assessment = await fileUpload.uploadToS3(assessmentFile);
       updateData.uploadAssessment = assessment.url;
     }
 

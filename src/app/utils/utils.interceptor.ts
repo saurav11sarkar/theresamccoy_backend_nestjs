@@ -1,3 +1,5 @@
+import { redactContacts } from './contact-privacy';
+import type { Request } from 'express';
 import {
   CallHandler,
   ExecutionContext,
@@ -13,6 +15,17 @@ export class UtilsInterceptor implements NestInterceptor {
     const res = context.switchToHttp().getResponse<Response>();
     return next.handle().pipe(
       map((response) => {
+        if (res.headersSent) return response;
+        const req = context.switchToHttp().getRequest<Request>();
+        const unlocked =
+          Reflect.getMetadata('unlockedContacts', context.getHandler()) ===
+          true;
+        if (response !== undefined)
+          response = redactContacts(
+            JSON.parse(JSON.stringify(response)),
+            req.user,
+            unlocked,
+          );
         if (
           response &&
           typeof response === 'object' &&
@@ -30,8 +43,8 @@ export class UtilsInterceptor implements NestInterceptor {
         return {
           statusCode: res.statusCode,
           success: res.statusCode >= 200 && res.statusCode < 300,
-          message: response.meta ?? `Request successfully completed`,
-          meta: response.data,
+          message: response?.meta ?? `Request successfully completed`,
+          meta: response?.data,
           data: response,
         };
       }),

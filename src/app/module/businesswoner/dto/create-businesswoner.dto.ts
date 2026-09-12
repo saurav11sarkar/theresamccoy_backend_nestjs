@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEmail,
   IsNotEmpty,
   IsNumber,
@@ -51,7 +52,7 @@ export class CreateBusinesswonerDto {
   })
   @IsString()
   @IsNotEmpty()
-  preherrenceLanguage!: string;
+  preferredLanguage!: string;
 
   @ApiPropertyOptional({
     example: 'Technology',
@@ -72,14 +73,14 @@ export class CreateBusinesswonerDto {
   })
   @IsNumber()
   @Min(0)
-  yearInBusiness!: number;
+  yearsInBusiness!: number;
 
   @ApiPropertyOptional({
     example: 10,
   })
   @IsNumber()
   @Min(0)
-  numberEmployees!: number;
+  numberOfEmployees!: number;
 
   @ApiPropertyOptional({
     example: 'New York, USA',
@@ -95,12 +96,19 @@ export class CreateBusinesswonerDto {
   @IsUrl()
   website?: string;
 
-  @ApiPropertyOptional({
-    example: 'Full-time',
-  })
+  @ApiPropertyOptional({ example: 'Ongoing support' })
   @IsString()
   @IsNotEmpty()
   supportType!: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Ongoing bookkeeping', 'Catch-up / cleanup work'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsNotEmpty()
+  engagementTypes!: string[];
 
   @ApiPropertyOptional({
     example: '$1000000 - $2000000',
@@ -115,14 +123,16 @@ export class CreateBusinesswonerDto {
   })
   @IsString()
   @IsNotEmpty()
-  onsiteOnVirtual!: string;
+  onsiteOrVirtual!: string;
 
   @ApiPropertyOptional({
-    example: 'Currently growing and looking to improve operations',
+    type: [String],
+    example: ['Behind / need clean-up', 'Need a bookkeeper'],
   })
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsNotEmpty()
-  whereDoYouStandToday!: string;
+  whereDoYouStandToday!: string[];
 
   @ApiPropertyOptional({
     example: 'QuickBooks and Excel',
@@ -136,42 +146,39 @@ export class CreateBusinesswonerDto {
   })
   @IsString()
   @IsNotEmpty()
-  monthlyTransactions!: string;
+  monthlyTransactionVolume!: string;
 
   @ApiPropertyOptional({
-    example: 'Bookkeeping and financial management',
+    type: [String],
+    example: ['Monthly bookkeeping', 'Payroll'],
   })
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsNotEmpty()
-  serviceYouAreLookingFor!: string;
+  servicesYouAreLookingFor!: string[];
 
   @ApiPropertyOptional({
-    example: 'Business growth and financial planning',
+    type: [String],
+    example: ['Tax services', 'Business funding consultation'],
   })
-  @IsString()
-  @IsNotEmpty()
-  interestedIn!: string;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interestedIn?: string[];
 
   @ApiPropertyOptional({
     example: 'Yes',
   })
   @IsString()
   @IsNotEmpty()
-  businessCouching!: string;
-
-  @ApiPropertyOptional({
-    example: '2 sessions per month',
-  })
-  @IsString()
-  @IsNotEmpty()
-  monthlyCouching!: string;
+  businessCoaching!: string;
 
   @ApiPropertyOptional({
     example: '$1000 - $2000',
   })
   @IsString()
   @IsNotEmpty()
-  monthlyBudget!: string;
+  monthlyBudgetRange!: string;
 
   @ApiPropertyOptional({
     example: 'I would like to discuss tax planning as well.',

@@ -1,5 +1,5 @@
-import path from 'path';
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
@@ -32,6 +32,19 @@ export default {
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
     folder: process.env.CLOUDINARY_FOLDER || 'nestjs-boilerplate',
+  },
+  aws: {
+    region: process.env.AWS_REGION,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    bucket: process.env.AWS_BUCKET_NAME || process.env.AWS_BUCKET,
+    folder: (process.env.AWS_UPLOAD_FOLDER || 'uploads').replace(
+      /^\/+|\/+$/g,
+      '',
+    ),
+    publicBaseUrl: process.env.AWS_PUBLIC_BASE_URL,
+    maxFileSizeMb: toNumber(process.env.AWS_MAX_FILE_SIZE_MB, 50),
+    maxFiles: toNumber(process.env.AWS_MAX_FILES, 3),
   },
   email: {
     expires: process.env.EMAIL_EXPIRES,

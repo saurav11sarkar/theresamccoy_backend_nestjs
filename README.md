@@ -29,19 +29,19 @@ A clean, reusable NestJS backend boilerplate for building production-ready REST 
 
 ## Tech Stack
 
-| Area | Technology |
-| --- | --- |
-| Runtime | Node.js |
-| Framework | NestJS 11 |
-| Language | TypeScript |
-| Database | MongoDB |
-| ODM | Mongoose |
-| Auth | JWT, bcrypt |
-| Docs | Swagger |
-| Upload | Multer, Cloudinary |
-| Email | Nodemailer |
-| Payment | Stripe |
-| Testing | Jest, Supertest |
+| Area      | Technology      |
+| --------- | --------------- |
+| Runtime   | Node.js         |
+| Framework | NestJS 11       |
+| Language  | TypeScript      |
+| Database  | MongoDB         |
+| ODM       | Mongoose        |
+| Auth      | JWT, bcrypt     |
+| Docs      | Swagger         |
+| Upload    | Multer, AWS S3  |
+| Email     | Nodemailer      |
+| Payment   | Stripe          |
+| Testing   | Jest, Supertest |
 
 ## Main Features
 
@@ -50,10 +50,10 @@ A clean, reusable NestJS backend boilerplate for building production-ready REST 
 - Role-based guard for `user` and `admin`
 - MongoDB models with Mongoose schemas
 - Global response format with interceptor
-- Global exception filter for validation, MongoDB, JWT, multer, Cloudinary, Axios, and syntax errors
+- Global exception filter for validation, MongoDB, JWT, multer, Axios, and syntax errors
 - Pagination, filtering, searching, and sorting helpers
 - Swagger API documentation
-- Optional Cloudinary image upload
+- Optional AWS S3 file upload
 - Optional email sending helper
 - Optional Stripe payment intent and webhook flow
 - Unit and e2e smoke tests
@@ -138,48 +138,48 @@ Health:  http://localhost:5000
 
 Core app config:
 
-| Variable | Required | Example | Purpose |
-| --- | --- | --- | --- |
-| `NODE_ENV` | Yes | `development` | Runtime environment |
-| `PORT` | Yes | `5000` | Server port |
-| `APP_NAME` | Yes | `My API` | App name used in Swagger and health response |
-| `MONGO_URI` | Yes | `mongodb://127.0.0.1:27017/app` | MongoDB connection string |
-| `CORS_ORIGIN` | Yes | `http://localhost:3000` | Frontend origin allowed by CORS |
+| Variable      | Required | Example                         | Purpose                                      |
+| ------------- | -------- | ------------------------------- | -------------------------------------------- |
+| `NODE_ENV`    | Yes      | `development`                   | Runtime environment                          |
+| `PORT`        | Yes      | `5000`                          | Server port                                  |
+| `APP_NAME`    | Yes      | `My API`                        | App name used in Swagger and health response |
+| `MONGO_URI`   | Yes      | `mongodb://127.0.0.1:27017/app` | MongoDB connection string                    |
+| `CORS_ORIGIN` | Yes      | `http://localhost:3000`         | Frontend origin allowed by CORS              |
 
 Auth config:
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `BCRYPT_SALT_ROUNDS` | Yes | Password hashing rounds |
-| `ACCESS_TOKEN_SECRET` | Yes | JWT access token secret |
-| `ACCESS_TOKEN_EXPIRES` | Yes | Access token expiry |
-| `REFRESH_TOKEN_SECRET` | Yes | JWT refresh token secret |
-| `REFRESH_TOKEN_EXPIRES` | Yes | Refresh token expiry |
+| Variable                | Required | Purpose                  |
+| ----------------------- | -------- | ------------------------ |
+| `BCRYPT_SALT_ROUNDS`    | Yes      | Password hashing rounds  |
+| `ACCESS_TOKEN_SECRET`   | Yes      | JWT access token secret  |
+| `ACCESS_TOKEN_EXPIRES`  | Yes      | Access token expiry      |
+| `REFRESH_TOKEN_SECRET`  | Yes      | JWT refresh token secret |
+| `REFRESH_TOKEN_EXPIRES` | Yes      | Refresh token expiry     |
 
 Optional services:
 
-| Service | Required Variables |
-| --- | --- |
-| Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_FOLDER` |
-| Email | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_ADDRESS`, `EMAIL_PASS`, `EMAIL_FROM`, `EMAIL_SENDER_NAME` |
-| Stripe | `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+| Service | Required Variables                                                                                         |
+| ------- | ---------------------------------------------------------------------------------------------------------- |
+| AWS S3  | `AWS_REGION`, `AWS_BUCKET_NAME`; optional static credentials: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| Email   | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_ADDRESS`, `EMAIL_PASS`, `EMAIL_FROM`, `EMAIL_SENDER_NAME`               |
+| Stripe  | `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                     |
 
-Cloudinary, email, and Stripe are optional at app startup. If their values are empty, the server still runs. Related endpoints/helpers will return a clear configuration error until you set the required values.
+S3, email, and Stripe are optional at app startup. Upload endpoints return a clear configuration error until S3 is configured. In AWS production environments, prefer an IAM task/instance role instead of static access keys. Optional upload settings are `AWS_UPLOAD_FOLDER`, `AWS_PUBLIC_BASE_URL`, `AWS_MAX_FILE_SIZE_MB`, and `AWS_MAX_FILES`.
 
 ## Available Scripts
 
-| Command | Description |
-| --- | --- |
-| `npm run start` | Start NestJS app |
-| `npm run start:dev` | Start app in watch mode |
+| Command               | Description                   |
+| --------------------- | ----------------------------- |
+| `npm run start`       | Start NestJS app              |
+| `npm run start:dev`   | Start app in watch mode       |
 | `npm run start:debug` | Start app in debug watch mode |
-| `npm run build` | Build project into `dist` |
-| `npm run start:prod` | Run production build |
-| `npm run lint` | Run ESLint and auto-fix |
-| `npm run format` | Format source and test files |
-| `npm test` | Run unit tests |
-| `npm run test:e2e` | Run e2e tests |
-| `npm run test:cov` | Run tests with coverage |
+| `npm run build`       | Build project into `dist`     |
+| `npm run start:prod`  | Run production build          |
+| `npm run lint`        | Run ESLint and auto-fix       |
+| `npm run format`      | Format source and test files  |
+| `npm test`            | Run unit tests                |
+| `npm run test:e2e`    | Run e2e tests                 |
+| `npm run test:cov`    | Run tests with coverage       |
 
 ## Run Tests
 
@@ -204,38 +204,38 @@ All module routes use this prefix:
 
 Important routes:
 
-| Module | Method | Endpoint | Access |
-| --- | --- | --- | --- |
-| Health | `GET` | `/` | Public |
-| Auth | `POST` | `/api/v1/auth/register` | Public |
-| Auth | `POST` | `/api/v1/auth/login` | Public |
-| Auth | `POST` | `/api/v1/auth/forgot-password` | Public |
-| Auth | `POST` | `/api/v1/auth/verify` | Public |
-| Auth | `POST` | `/api/v1/auth/reset-password` | Public |
-| Auth | `POST` | `/api/v1/auth/change-password` | User/Admin |
-| User | `POST` | `/api/v1/user` | Admin |
-| User | `GET` | `/api/v1/user` | Admin |
-| User | `GET` | `/api/v1/user/profile` | User/Admin |
-| User | `PUT` | `/api/v1/user/profile` | User/Admin |
-| User | `GET` | `/api/v1/user/:id` | Admin |
-| User | `PUT` | `/api/v1/user/:id` | Admin |
-| User | `DELETE` | `/api/v1/user/:id` | Admin |
-| Contact | `POST` | `/api/v1/contact` | Public |
-| Contact | `GET` | `/api/v1/contact` | Admin |
-| Contact | `GET` | `/api/v1/contact/:id` | Public |
-| Contact | `PUT` | `/api/v1/contact/:id` | Admin |
-| Contact | `DELETE` | `/api/v1/contact/:id` | Admin |
-| Subscribe | `POST` | `/api/v1/subscribe` | Admin |
-| Subscribe | `GET` | `/api/v1/subscribe` | Public |
-| Subscribe | `GET` | `/api/v1/subscribe/:id` | Public |
-| Subscribe | `PATCH` | `/api/v1/subscribe/:id` | Admin |
-| Subscribe | `DELETE` | `/api/v1/subscribe/:id` | Admin |
-| Payment | `POST` | `/api/v1/payment/:subscribeId` | User |
-| Payment | `GET` | `/api/v1/payment` | Admin |
-| Payment | `GET` | `/api/v1/payment/:id` | Public |
-| Dashboard | `GET` | `/api/v1/dashboard/overview` | Admin |
-| Dashboard | `GET` | `/api/v1/dashboard/chart` | Admin |
-| Webhook | `POST` | `/api/v1/webhook` | Stripe |
+| Module    | Method   | Endpoint                       | Access     |
+| --------- | -------- | ------------------------------ | ---------- |
+| Health    | `GET`    | `/`                            | Public     |
+| Auth      | `POST`   | `/api/v1/auth/register`        | Public     |
+| Auth      | `POST`   | `/api/v1/auth/login`           | Public     |
+| Auth      | `POST`   | `/api/v1/auth/forgot-password` | Public     |
+| Auth      | `POST`   | `/api/v1/auth/verify`          | Public     |
+| Auth      | `POST`   | `/api/v1/auth/reset-password`  | Public     |
+| Auth      | `POST`   | `/api/v1/auth/change-password` | User/Admin |
+| User      | `POST`   | `/api/v1/user`                 | Admin      |
+| User      | `GET`    | `/api/v1/user`                 | Admin      |
+| User      | `GET`    | `/api/v1/user/profile`         | User/Admin |
+| User      | `PUT`    | `/api/v1/user/profile`         | User/Admin |
+| User      | `GET`    | `/api/v1/user/:id`             | Admin      |
+| User      | `PUT`    | `/api/v1/user/:id`             | Admin      |
+| User      | `DELETE` | `/api/v1/user/:id`             | Admin      |
+| Contact   | `POST`   | `/api/v1/contact`              | Public     |
+| Contact   | `GET`    | `/api/v1/contact`              | Admin      |
+| Contact   | `GET`    | `/api/v1/contact/:id`          | Public     |
+| Contact   | `PUT`    | `/api/v1/contact/:id`          | Admin      |
+| Contact   | `DELETE` | `/api/v1/contact/:id`          | Admin      |
+| Subscribe | `POST`   | `/api/v1/subscribe`            | Admin      |
+| Subscribe | `GET`    | `/api/v1/subscribe`            | Public     |
+| Subscribe | `GET`    | `/api/v1/subscribe/:id`        | Public     |
+| Subscribe | `PATCH`  | `/api/v1/subscribe/:id`        | Admin      |
+| Subscribe | `DELETE` | `/api/v1/subscribe/:id`        | Admin      |
+| Payment   | `POST`   | `/api/v1/payment/:subscribeId` | User       |
+| Payment   | `GET`    | `/api/v1/payment`              | Admin      |
+| Payment   | `GET`    | `/api/v1/payment/:id`          | Public     |
+| Dashboard | `GET`    | `/api/v1/dashboard/overview`   | Admin      |
+| Dashboard | `GET`    | `/api/v1/dashboard/chart`      | Admin      |
+| Webhook   | `POST`   | `/api/v1/webhook`              | Stripe     |
 
 For exact request bodies, open Swagger:
 
@@ -321,13 +321,13 @@ In development, `stack` is included for easier debugging.
 
 List endpoints commonly support:
 
-| Query | Example | Purpose |
-| --- | --- | --- |
-| `page` | `1` | Page number |
-| `limit` | `10` | Items per page |
-| `sortBy` | `createdAt` | Field to sort |
-| `sortOrder` | `desc` | `asc` or `desc` |
-| `searchTerm` | `john` | Text search across configured fields |
+| Query        | Example     | Purpose                              |
+| ------------ | ----------- | ------------------------------------ |
+| `page`       | `1`         | Page number                          |
+| `limit`      | `10`        | Items per page                       |
+| `sortBy`     | `createdAt` | Field to sort                        |
+| `sortOrder`  | `desc`      | `asc` or `desc`                      |
+| `searchTerm` | `john`      | Text search across configured fields |
 
 Example:
 
@@ -367,25 +367,25 @@ This boilerplate is ready for two deployment styles:
 
 The deployment files are:
 
-| File | Purpose |
-| --- | --- |
-| `Dockerfile` | Builds the production NestJS image |
-| `.dockerignore` | Keeps Docker build context small and secure |
-| `docker-compose.yml` | Runs the API container locally or on a server |
+| File                           | Purpose                                                     |
+| ------------------------------ | ----------------------------------------------------------- |
+| `Dockerfile`                   | Builds the production NestJS image                          |
+| `.dockerignore`                | Keeps Docker build context small and secure                 |
+| `docker-compose.yml`           | Runs the API container locally or on a server               |
 | `.github/workflows/deploy.yml` | CI/CD pipeline for build, test, Docker push, and VPS deploy |
-| `.env.example` | Example env values for local, Docker, and production |
+| `.env.example`                 | Example env values for local, Docker, and production        |
 
 ## Dockerfile Explanation
 
 The `Dockerfile` uses a production-friendly multi-stage build:
 
-| Stage | What It Does |
-| --- | --- |
-| `base` | Sets Node.js 20 Alpine and app work directory |
-| `deps` | Installs all dependencies with `npm ci` |
-| `builder` | Builds TypeScript into `dist` |
-| `production-deps` | Installs only production dependencies |
-| `production` | Runs the final app as a non-root user |
+| Stage             | What It Does                                  |
+| ----------------- | --------------------------------------------- |
+| `base`            | Sets Node.js 20 Alpine and app work directory |
+| `deps`            | Installs all dependencies with `npm ci`       |
+| `builder`         | Builds TypeScript into `dist`                 |
+| `production-deps` | Installs only production dependencies         |
+| `production`      | Runs the final app as a non-root user         |
 
 Production benefits:
 
@@ -573,11 +573,17 @@ services:
     env_file:
       - .env
     ports:
-      - "${APP_PORT:-5000}:${PORT:-5000}"
+      - '${APP_PORT:-5000}:${PORT:-5000}'
     networks:
       - backend_network
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 5000)).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:' + (process.env.PORT || 5000)).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -640,46 +646,47 @@ GitHub repository -> Settings -> Secrets and variables -> Actions -> Secrets
 
 Add these required secrets:
 
-| Secret | Example | Purpose |
-| --- | --- | --- |
-| `DOCKER_USERNAME` | `saurav11sarkar` | Docker Hub username |
-| `DOCKER_PASSWORD` | `dckr_pat_xxx` | Docker Hub access token or password |
-| `SERVER_HOST` | `123.123.123.123` | VPS IP or domain |
-| `SERVER_USER` | `root` or `deploy` | VPS SSH user |
-| `SERVER_SSH_KEY` | private key content | SSH private key |
-| `SERVER_PORT` | `22` | SSH port |
-| `MONGO_URI` | `mongodb+srv://...` | Production MongoDB URI |
-| `CORS_ORIGIN` | `https://your-frontend.com` | Allowed frontend origin |
-| `JWT_SECRET` | strong random string | JWT secret |
-| `JWT_EXPIRE` | `1h` | JWT expiry |
-| `BCRYPT_SALT_ROUNDS` | `10` | Password hash rounds |
-| `ACCESS_TOKEN_SECRET` | strong random string | Access token secret |
-| `ACCESS_TOKEN_EXPIRES` | `7d` | Access token expiry |
-| `REFRESH_TOKEN_SECRET` | strong random string | Refresh token secret |
-| `REFRESH_TOKEN_EXPIRES` | `90d` | Refresh token expiry |
+| Secret                  | Example                     | Purpose                             |
+| ----------------------- | --------------------------- | ----------------------------------- |
+| `DOCKER_USERNAME`       | `saurav11sarkar`            | Docker Hub username                 |
+| `DOCKER_PASSWORD`       | `dckr_pat_xxx`              | Docker Hub access token or password |
+| `SERVER_HOST`           | `123.123.123.123`           | VPS IP or domain                    |
+| `SERVER_USER`           | `root` or `deploy`          | VPS SSH user                        |
+| `SERVER_SSH_KEY`        | private key content         | SSH private key                     |
+| `SERVER_PORT`           | `22`                        | SSH port                            |
+| `MONGO_URI`             | `mongodb+srv://...`         | Production MongoDB URI              |
+| `CORS_ORIGIN`           | `https://your-frontend.com` | Allowed frontend origin             |
+| `JWT_SECRET`            | strong random string        | JWT secret                          |
+| `JWT_EXPIRE`            | `1h`                        | JWT expiry                          |
+| `BCRYPT_SALT_ROUNDS`    | `10`                        | Password hash rounds                |
+| `ACCESS_TOKEN_SECRET`   | strong random string        | Access token secret                 |
+| `ACCESS_TOKEN_EXPIRES`  | `7d`                        | Access token expiry                 |
+| `REFRESH_TOKEN_SECRET`  | strong random string        | Refresh token secret                |
+| `REFRESH_TOKEN_EXPIRES` | `90d`                       | Refresh token expiry                |
 
 Optional service secrets:
 
-| Secret | When Needed |
-| --- | --- |
-| `CLOUDINARY_CLOUD_NAME` | Image upload |
-| `CLOUDINARY_API_KEY` | Image upload |
-| `CLOUDINARY_API_SECRET` | Image upload |
-| `EMAIL_HOST` | Email/OTP |
-| `EMAIL_PORT` | Email/OTP |
-| `EMAIL_ADDRESS` | Email/OTP |
-| `EMAIL_PASS` | Email/OTP |
-| `EMAIL_FROM` | Email/OTP |
-| `EMAIL_TO` | Admin email routing |
-| `ADMIN_EMAIL` | Admin email routing |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe payments |
-| `STRIPE_SECRET_KEY` | Stripe payments |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook |
+| Secret                       | When Needed                 |
+| ---------------------------- | --------------------------- |
+| `AWS_REGION`                 | File upload                 |
+| `AWS_BUCKET_NAME`            | File upload                 |
+| `AWS_ACCESS_KEY_ID`          | File upload outside an IAM role |
+| `AWS_SECRET_ACCESS_KEY`      | File upload outside an IAM role |
+| `EMAIL_HOST`                 | Email/OTP                   |
+| `EMAIL_PORT`                 | Email/OTP                   |
+| `EMAIL_ADDRESS`              | Email/OTP                   |
+| `EMAIL_PASS`                 | Email/OTP                   |
+| `EMAIL_FROM`                 | Email/OTP                   |
+| `EMAIL_TO`                   | Admin email routing         |
+| `ADMIN_EMAIL`                | Admin email routing         |
+| `STRIPE_PUBLISHABLE_KEY`     | Stripe payments             |
+| `STRIPE_SECRET_KEY`          | Stripe payments             |
+| `STRIPE_WEBHOOK_SECRET`      | Stripe webhook              |
 | `STRIPE_PLATFORM_ACCOUNT_ID` | Stripe Connect/platform use |
-| `GOOGLE_CLIENT_ID` | Google OAuth |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth |
-| `FRONTEND_URL` | Frontend redirect/config |
-| `BACKEND_URL` | Backend public URL |
+| `GOOGLE_CLIENT_ID`           | Google OAuth                |
+| `GOOGLE_CLIENT_SECRET`       | Google OAuth                |
+| `FRONTEND_URL`               | Frontend redirect/config    |
+| `BACKEND_URL`                | Backend public URL          |
 
 ## GitHub Repository Variables
 
@@ -691,16 +698,16 @@ GitHub repository -> Settings -> Secrets and variables -> Actions -> Variables
 
 Recommended variables:
 
-| Variable | Example | Purpose |
-| --- | --- | --- |
-| `DOCKER_IMAGE_NAME` | `my-project-backend` | Docker Hub image repo name |
-| `APP_DIR` | `/opt/my-project-backend` | VPS deployment folder |
-| `APP_PORT` | `5000` | Public VPS port |
-| `CONTAINER_PORT` | `5000` | Internal NestJS port |
-| `APP_NAME` | `My Project API` | Swagger/health display name |
-| `APP_CONTAINER_NAME` | `my_project_api` | Docker container name |
-| `CLOUDINARY_FOLDER` | `my-project` | Cloudinary folder |
-| `EMAIL_SENDER_NAME` | `My Project` | Email sender display name |
+| Variable             | Example                   | Purpose                     |
+| -------------------- | ------------------------- | --------------------------- |
+| `DOCKER_IMAGE_NAME`  | `my-project-backend`      | Docker Hub image repo name  |
+| `APP_DIR`            | `/opt/my-project-backend` | VPS deployment folder       |
+| `APP_PORT`           | `5000`                    | Public VPS port             |
+| `CONTAINER_PORT`     | `5000`                    | Internal NestJS port        |
+| `APP_NAME`           | `My Project API`          | Swagger/health display name |
+| `APP_CONTAINER_NAME` | `my_project_api`          | Docker container name       |
+| `AWS_UPLOAD_FOLDER`  | `uploads`                 | S3 object-key prefix        |
+| `EMAIL_SENDER_NAME`  | `My Project`              | Email sender display name   |
 
 ## SSH Key Setup For CI/CD
 
@@ -842,7 +849,7 @@ Before real production launch:
 - Replace all `change-me-*` secrets
 - Use long random JWT secrets
 - Set exact `CORS_ORIGIN`, not `*`
-- Configure Cloudinary only if uploads are used
+- Configure AWS S3 only if uploads are used
 - Configure email only if OTP/mail is used
 - Configure Stripe only if payments are used
 - Keep `.env` out of Git

@@ -1,3 +1,4 @@
+import { EngagementModule } from '../engagement/engagement.module';
 import { Module } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { WebhookController } from './webhook.controller';
@@ -11,6 +12,7 @@ import {
 
 @Module({
   imports: [
+    EngagementModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Payment.name, schema: PaymentSchema },

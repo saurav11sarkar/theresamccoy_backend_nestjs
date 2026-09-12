@@ -16,6 +16,10 @@ import { BusinesswonerModule } from './app/module/businesswoner/businesswoner.mo
 import { ApplicationFormModule } from './app/module/application/application-form.module';
 import { BookkeeperModule } from './app/module/bookkeeper/bookkeeper.module';
 import { CertificateModule } from './app/module/certificate/certificate.module';
+import { MatchBookkeepersModule } from './app/module/match-bookkeepers/match-bookkeepers.module';
+import { RequestModule } from './app/module/request/request.module';
+import { MeetingScheduleModule } from './app/module/meeting-schedule/meeting-schedule.module';
+import { EngagementModule } from './app/module/engagement/engagement.module';
 
 @Module({
   imports: [
@@ -33,6 +37,10 @@ import { CertificateModule } from './app/module/certificate/certificate.module';
     ApplicationFormModule,
     BookkeeperModule,
     CertificateModule,
+    MatchBookkeepersModule,
+    RequestModule,
+    MeetingScheduleModule,
+    EngagementModule,
   ],
   controllers: [AppController],
   providers: [AppService],
